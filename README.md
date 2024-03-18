@@ -1,3 +1,9 @@
+# Description
+
+This is a simple Slack bot that listens to messages in a channel, and when it finds a (single)
+message linking to a Gitlab MR, it will send the MR contents to OpenAI and post back a summary of the MR as a reply to
+the original message.
+
 ### Requirements ###
 1. Python 3.11 or higher
 2. Poetry
