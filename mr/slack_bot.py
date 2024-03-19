@@ -6,25 +6,45 @@ from typing import Any
 from slack_bolt import App
 
 from mr.mr import summarize_mr
+from mr.mr import summarize_diff
 from mr.settings import Settings
 
 # Define the pattern you want to match to extract the MR id
-pattern = r"merge_requests/(\d+)"
+mr_pattern = r"merge_requests/(\d+)"
+
+# More specific pattern for comparing tags
+# diff_pattern = r'compare/v(\d{6}-\d{4}\.\d+)\.\.\.v(\d{6}-\d{4}\.\d+)'
+# More generic version
+diff_pattern = r'compare/([a-zA-Z0-9\.-]+)\.\.\.([a-zA-Z0-9\.-]+)'
+
 
 class Task:
-    def __init__(self, merge_request_id: str, body: str, say: Any, settings: Settings):
+    def __init__(self, body: str, say: Any,
+                 settings: Settings,
+                 merge_request_id: str | None = None, from_tag: str | None = None, to_tag: str | None = None):
         self.merge_request_id = merge_request_id
+        self.from_tag = from_tag
+        self.to_tag = to_tag
         self.body = body
         self.say = say
         self.settings = settings
 
     def call(self):
-        print(f"The merge request ID is: {self.merge_request_id}, gonna summarize now...")
+        summary = None
+        if self.merge_request_id:
+            print(f"The merge request ID is: {self.merge_request_id}, gonna summarize now...")
 
-        summary = summarize_mr(self.settings, self.merge_request_id)
+            summary = summarize_mr(self.settings, self.merge_request_id)
+        elif self.from_tag and self.to_tag:
+            print(f"Comparing tags {self.from_tag} and {self.to_tag}, gonna summarize now...")
 
-        print(f"The merge request ID is: {self.merge_request_id}, summarizing done, so gonna reply now...")
-        self.say({"text": summary, "thread_ts": self.body["event"]["ts"]})
+            summary = summarize_diff(self.settings, self.from_tag, self.to_tag)
+
+        if summary:
+            print(f"Summarizing done, sending reply now...")
+            self.say({"text": summary, "thread_ts": self.body["event"]["ts"]})
+        else:
+            print("No summary found or nothing to do with this message.")
 
 
 def start_bot(settings: Settings):
@@ -33,23 +53,24 @@ def start_bot(settings: Settings):
         token=settings.slack_token,
         signing_secret=settings.slack_signing_secret
     )
+
     @app.event("message")
     def handle_message(body, say, logger):
-        # Check if the message is from the desired channel
-        if body["event"]["channel"] == settings.slack_channel_id:
-            message = body["event"]["text"]
+        message = body["event"]["text"]
 
-            # Find the merge request ID using re.search
-            match = re.search(pattern, message)
-            if match:
-                merge_request_id = match.group(1)
+        task = None
 
-                task = Task(merge_request_id, body, say, settings)
+        if match := re.search(mr_pattern, message):
+            merge_request_id = match.group(1)
 
-                thread = threading.Thread(target=task.call)
-                thread.start()
-            else:
-                print("No merge request ID found in the string.")
+            task = Task(body, say, settings, merge_request_id=merge_request_id)
+        elif match := re.search(diff_pattern, message):
+            from_tag, to_tag = match.groups()
 
+            task = Task(body, say, settings, from_tag=from_tag, to_tag=to_tag)
+
+        if task:
+            thread = threading.Thread(target=task.call)
+            thread.start()
 
     app.start(port=int(os.environ.get("PORT", settings.port)))

@@ -1,5 +1,5 @@
 # Use python 3.11 base image
-FROM python:3.11
+FROM --platform=linux/amd64 python:3.11
 # Install poetry
 RUN pip install poetry
 # Set the working directory
