@@ -1,7 +1,7 @@
 # Description
 
-This is a simple Slack bot that listens to messages in a channel, and when it finds a (single)
-message linking to a Gitlab MR, it will send the MR contents to OpenAI and post back a summary of the MR as a reply to
+This is a simple Slack bot that listens to messages in a channel, and when it finds a (single) message linking to a 
+Gitlab MR or a diff between tags, it will send the contents to OpenAI and post back a summary of changes as a reply to 
 the original message.
 
 ### Requirements ###
