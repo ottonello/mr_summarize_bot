@@ -11,10 +11,6 @@ from mr.settings import Settings
 
 # Define the pattern you want to match to extract the MR id
 mr_pattern = r"merge_requests/(\d+)"
-
-# More specific pattern for comparing tags
-# diff_pattern = r'compare/v(\d{6}-\d{4}\.\d+)\.\.\.v(\d{6}-\d{4}\.\d+)'
-# More generic version
 diff_pattern = r'compare/([a-zA-Z0-9\.-]+)\.\.\.([a-zA-Z0-9\.-]+)'
 
 
@@ -56,7 +52,10 @@ def start_bot(settings: Settings):
 
     @app.event("message")
     def handle_message(body, say, logger):
-        message = body["event"]["text"]
+        message = get_message(body)
+        if not message:
+            message = get_attachment_text(body)
+
 
         task = None
 
@@ -74,3 +73,16 @@ def start_bot(settings: Settings):
             thread.start()
 
     app.start(port=int(os.environ.get("PORT", settings.port)))
+
+
+def get_message(body: dict) -> str | None:
+    if "event" in body:
+        if "text" in body["event"]:
+            return body["event"]["text"]
+    return None
+
+
+def get_attachment_text(body: dict, index: int = 0) -> str | None:
+    if "attachments" in body["event"] and body["event"]["attachments"] and len(body["event"]["attachments"]) > index:
+        return body["event"]["attachments"][index]["text"]
+    return None
