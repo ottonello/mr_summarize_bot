@@ -1,3 +1,5 @@
+import urllib.parse
+
 import requests
 import openai
 
@@ -22,8 +24,8 @@ def summarize_diff(settings: Settings, from_tag: str, to_tag: str) -> str | None
 
 
 # Fetch the merge request changes
-def summarize_mr(settings: Settings, mr_id: str) -> str | None:
-    changes_url = f"{settings.gitlab_url}/api/v4/projects/{settings.gitlab_project_id}/merge_requests/{mr_id}/changes"
+def summarize_mr(settings: Settings, repository_name: str, mr_id: str) -> str | None:
+    changes_url = f"{settings.gitlab_url}/api/v4/projects/{urllib.parse.quote_plus(repository_name)}/merge_requests/{mr_id}/changes"
     changes_response = requests.get(changes_url, headers=get_headers(settings))
 
     return summarize_changes(changes_response)
