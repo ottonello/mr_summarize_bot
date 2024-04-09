@@ -45,7 +45,7 @@ def summarize_changes(changes_response):
         messages = [
             {"role": "system", "content": "You are a helpful assistant that summarizes code changes."},
             {"role": "user",
-             "content": f"Please provide a concise summary of the following code changes:\n\n{diff_text}"}
+             "content": f"Please provide a short and concise summary of the following code changes, in less than 1000 characters:\n\n{diff_text}"}
         ]
 
         response = openai.chat.completions.create(
